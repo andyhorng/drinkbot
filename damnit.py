@@ -2,6 +2,7 @@
 import logging
 import time
 import yaml
+import json
 import threading
 from fysom import Fysom
 
@@ -13,15 +14,32 @@ class Bot(object):
     def __init__(self, config):
         self.config = config
         self.slack = SlackClient(config['token'])
-        self.fsm = Fysom({
+        self.menu = json.load(open('./menu.json'))
+
+        self.state = Fysom({
             'initial': 'standby',
             'events': [
                 {'name': 'start_to_order',
                     'src': 'standby', 'dst': 'ordering'},
+                {'name': 'order_drink', 'src': 'ordering', 'dst': 'ordering'},
                 {'name': 'done', 'src': 'ordering', 'dst': 'summary'},
                 {'name': 'confirm', 'src': 'summary', 'dst': 'standby'},
                 ],
+            'callbacks': {
+                'onordering': self.when_ordering,
+                'onorder_drink': self.when_order_drink
+                },
             })
+
+    def when_ordering(self, e):
+        event = e.args[0]
+        channel = self.slack.server.channels.find(event['channel'])
+        channel.send_message('菜單')
+
+    def when_order_drink(self, e):
+        event = e.args[0]
+        channel = self.slack.server.channels.find(event['channel'])
+        channel.send_message('OK')
 
     def up(self):
         connected = self.slack.rtm_connect()
@@ -55,10 +73,17 @@ class Bot(object):
         logging.info(channel.name)
 
         if channel.name == self.config['command_channel']:
-            channel.send_message('好的')
+            if '我要喝飲料' in event['text'].encode('utf-8'):
+                self.state.start_to_order(event)
+            if '紅茶' in event['text'].encode('utf-8'):
+                self.state.order_drink(event)
 
     def log(self, event):
         logging.info(event)
+        logging.info('state: ' + self.state.current)
+
+    def onstart_to_order():
+        pass
 
 
 class Main(object):
