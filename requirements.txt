@@ -1,0 +1,4 @@
+slackclient==0.15
+pyyaml==3.11
+fysom==2.1.0
+
