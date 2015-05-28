@@ -88,10 +88,6 @@ class Bot(object):
         self.user_orders = {}
 
     def hey(self, feed):
-        print "==== hey ====="
-        print feed.source
-        print feed.message
-        print "==== hey end ====="
         action = getattr(self, "state_{}".format(self.state))
         if action:
             rt = action(feed)
@@ -213,6 +209,10 @@ class Bot(object):
             total = count = 0
             order_summary_str = ""
             for (user_id, data) in self.user_orders.items():
+
+                if data['state'] != 'done':
+                    continue
+
                 for (item, custom) in data['items']:
                     total += item.price
                     count += 1

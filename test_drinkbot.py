@@ -39,7 +39,7 @@ class TestBot(unittest.TestCase):
         result = bot.hey(feed)
         self.assertEquals(result.message, '好')
 
-        users = ["U023BECGF"]
+        users = ["DM01", "DM02"]
         for user in users:
             feed = drinkbot.Feed(source="#slack", message=user)
             result = bot.hey(feed)
@@ -51,23 +51,35 @@ drinking a，菜單如下。
 002 drink2 NT$ 20
 ''')
 
-        feed = drinkbot.Feed(source="U023BECGF",
+        feed = drinkbot.Feed(source="#slack", message="done")
+        bot.hey(feed)
+
+        # user 1
+        feed = drinkbot.Feed(source="DM01",
                              message="001 少糖 去冰 002 去冰")
         result = bot.hey(feed)
-        self.assertEquals(result.to, "U023BECGF")
+        self.assertEquals(result.to, "DM01")
         self.assertEquals(result.message, '''\
 好的，已為您點了一杯 drink1 少糖 去冰，10 元。一杯 drink2 去冰，20 元。''')
+
+        # user 2
+        feed = drinkbot.Feed(source="DM02",
+                             message="002 少糖 去冰")
+        result = bot.hey(feed)
+        self.assertEquals(result.to, "DM02")
+        self.assertEquals(result.message, '''\
+好的，已為您點了一杯 drink2 少糖 去冰，20 元。''')
 
         feed = drinkbot.Feed(source="someone", message="點餐結束")
 
         result = bot.hey(feed)
-        print result.message
         self.assertEquals(result.message, '''\
 好，以下是本次的訂單統計
 drink1 少糖 去冰 x 1
 drink2 去冰 x 1
+drink2 少糖 去冰 x 1
 
-共計 2 杯，30 元
+共計 3 杯，50 元
 ''')
 
 
