@@ -1,6 +1,6 @@
-# Introduction
+# Introduction [![Build Status](https://travis-ci.org/andyhorng/drinkbot.svg)](https://travis-ci.org/andyhorng/drinkbot)
 
-Damnit is a robot lives in slack. It was born for take care you afternoon tea. You could ask him to order drinks and summarize the orders inside the team. Enjoy the afternoon and work!
+Drinkbot is a robot lives in slack. It was born for take care you afternoon tea. You could ask him to order drinks and summarize the orders inside the team. Enjoy the afternoon and work!
 
 
 # Installation
