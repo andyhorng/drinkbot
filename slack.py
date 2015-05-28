@@ -36,9 +36,12 @@ bot = drinkbot.Bot(menus=menus)
 def handle_message(event):
     # get channel name
     channel = slack.server.channels.find(event['channel'])
-    print "channel name: " + channel.name
+    logging.info("channel name: {}".format(channel.name))
+    if 'subtype' in event and event['subtype'] == 'bot_message':
+        return
 
-    if channel.name == config['command_channel'] or channel.name.startswith('D'):
+    if channel.name == config['command_channel'] or\
+            channel.name.startswith('D'):
         feed = drinkbot.Feed(source=event['channel'],
                              message=event['text'].encode('utf-8'))
         result = bot.hey(feed)
@@ -68,6 +71,7 @@ def handle_message(event):
 
             feed = drinkbot.Feed(source="#slack",
                                  message="done")
+            bot.hey(feed)
 
 
 connected = slack.rtm_connect()

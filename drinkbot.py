@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import logging
+
 
 class Feed(object):
     def __init__(self, *args, **kwargs):
@@ -14,6 +16,9 @@ class Feed(object):
     def message(self):
         return self._message
 
+    def __repr__(self):
+        return "from: {}, msg: {}".format(self.source, self.message)
+
 
 class Response(object):
     def __init__(self, *args, **kwargs):
@@ -27,6 +32,9 @@ class Response(object):
     @property
     def message(self):
         return self._message
+
+    def __repr__(self):
+        return "to: {}, msg: {}".format(self.to, self.message)
 
 
 class Menu(object):
@@ -87,7 +95,23 @@ class Bot(object):
         self.shop_id = None
         self.user_orders = {}
 
+    def log(func):
+        def wrapper(*args, **kwargs):
+            import pprint
+            logging.info("Enter: {}".format(func.__name__))
+            logging.info("Args: {}, {}".format(pprint.pformat(args),
+                                               pprint.pformat(kwargs)))
+            result = func(*args, **kwargs)
+            logging.info("Return: {}".format(pprint.pformat(result)))
+            logging.info("Leave: {}".format(func.__name__))
+
+            return result
+
+        return wrapper
+
+    @log
     def hey(self, feed):
+        logging.info("Status: {}".format(self.state))
         action = getattr(self, "state_{}".format(self.state))
         if action:
             rt = action(feed)
