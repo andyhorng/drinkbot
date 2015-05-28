@@ -54,7 +54,6 @@ def handle_message(event):
             rt = slack.api_call('groups.info', channel=event['channel'])
             data = json.loads(rt)
             for member in data['group']['members']:
-                time.sleep(1)
                 imopen = json.loads(slack.api_call('im.open', user=member))
                 if not imopen['ok']:
                     continue
