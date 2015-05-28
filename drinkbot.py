@@ -84,10 +84,20 @@ class Bot(object):
         self.state = "nothing"
         self.menus = kwargs['menus']
 
+        self.shop_id = None
+        self.user_orders = {}
+
     def hey(self, feed):
+        print "==== hey ====="
+        print feed.source
+        print feed.message
+        print "==== hey end ====="
         action = getattr(self, "state_{}".format(self.state))
         if action:
             rt = action(feed)
+            if not rt:
+                return None
+
             self.state = rt.next_state
             return rt.response
 
@@ -112,6 +122,7 @@ class Bot(object):
         try:
             selection = int(feed.message)
             if selection in shop_ids:
+                self.shop_id = selection
                 return Reaction('confirm_shop', Response(to=feed.source,
                                 message='''\
 您要訂的是 {}，\
@@ -128,11 +139,93 @@ class Bot(object):
 
     def state_confirm_shop(self, feed):
         if "Y" in feed.message:
-            return Reaction(
-                    "order_drink",
-                    "好"
-                    )
+            return Reaction("order_drink", Response(to=feed.source,
+                                                    message="好"))
 
+    def state_order_drink(self, feed):
+        '''Stateful state which will hold a global state that records
+        the status of user order
+        '''
+        # TODO Check the shop id
+        if feed.source == '#slack':
+
+            if feed.message == 'done':
+                return Reaction('waiting_user_order', None)
+
+            user = feed.message
+            menu_str = ""
+            self.user_orders[user] = dict(state='waiting')
+            for item in self.menus[self.shop_id].items:
+                menu_str += ("{:03d} {} NT$ {}\n"
+                             .format(item.id, item.name, item.price))
+
+            return Reaction('order_drink',
+                            Response(to=user,
+                                     message='''
+訂飲料囉！
+{}，菜單如下。
+{}'''.format(self.menus[self.shop_id].name, menu_str)))
+
+    def state_waiting_user_order(self, feed):
+        # not order yet
+        menu = self.menus[self.shop_id]
+
+        if feed.source in self.user_orders.keys() and \
+                self.user_orders[feed.source]['state'] == 'waiting':
+            # parsing
+            ids = ["{:03d}".format(item.id) for item in menu.items]
+
+            selecteds = {}
+            for id in ids:
+                ix = feed.message.find(id)
+                if ix >= 0:
+                    selecteds[ix] = id
+
+            if not len(selecteds.keys()):
+                return None
+
+            import operator
+            import re
+            items = sorted(selecteds.items(), key=operator.itemgetter(0))
+            rx = ""
+            for item in items:
+                rx += ".*({})(.*)".format(item[1])
+
+            order = ""
+            matched = re.match(rx, feed.message)
+            groups = matched.groups()
+            items = []
+            for i in range(0, len(groups), 2):
+                item = menu.get_item(int(groups[i]))
+                custom = groups[i+1].strip()
+                items.append((item, custom))
+                order += ("一杯 {} {}，{} 元。"
+                          .format(item.name, custom, item.price))
+
+            self.user_orders[feed.source]['state'] = 'done'
+            self.user_orders[feed.source]['items'] = items
+
+            return Reaction("waiting_user_order",
+                            Response(to=feed.source,
+                                     message='好的，已為您點了{}'
+                                     .format(order)))
+        elif "點餐結束" in feed.message:
+            total = count = 0
+            order_summary_str = ""
+            for (user_id, data) in self.user_orders.items():
+                for (item, custom) in data['items']:
+                    total += item.price
+                    count += 1
+                    order_summary_str += ("{} {} x 1\n"
+                                          .format(item.name, custom))
+
+            return Reaction("nothing",
+                            Response(to=feed.source,
+                                     message='''\
+好，以下是本次的訂單統計
+{}
+共計 {} 杯，{} 元
+'''.format(order_summary_str, count, total)))
 
 
 class Reaction(object):

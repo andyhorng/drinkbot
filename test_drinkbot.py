@@ -1,6 +1,6 @@
 # coding: utf-8
 import unittest
-import damnit
+import drinkbot
 
 
 class TestBot(unittest.TestCase):
@@ -8,11 +8,14 @@ class TestBot(unittest.TestCase):
     # This unit test is flow-based
 
     def test_normal_flow(self):
-        menus = {1: damnit.Menu(id=1, name="drinking a"),
-                 2: damnit.Menu(id=2, name="drinking b"), }
+        menus = {1: drinkbot.Menu(id=1, name="drinking a"),
+                 2: drinkbot.Menu(id=2, name="drinking b"), }
 
-        bot = damnit.Bot(menus=menus)
-        feed = damnit.Feed(source="someone", message="我要喝飲料")
+        menus[1].add_item(drinkbot.Item(id=1, name="drink1", price=10))
+        menus[1].add_item(drinkbot.Item(id=2, name="drink2", price=20))
+
+        bot = drinkbot.Bot(menus=menus)
+        feed = drinkbot.Feed(source="someone", message="我要喝飲料")
         result = bot.hey(feed)
 
         self.assertEquals(result.message, '''\
@@ -20,18 +23,53 @@ class TestBot(unittest.TestCase):
 或輸入list來列出所有飲料店。\
 或直接輸入您的訂單編號。''')
 
-        feed = damnit.Feed(source="someone", message="list")
+        feed = drinkbot.Feed(source="someone", message="list")
         result = bot.hey(feed)
         self.assertEquals(result.message, '1: drinking a, 2: drinking b')
 
-        feed = damnit.Feed(source="someone", message="1")
+        feed = drinkbot.Feed(source="someone", message="1")
         result = bot.hey(feed)
         self.assertEquals(result.message, '''\
 您要訂的是 drinking a，\
 確定請輸入Y，\
 重選請重新輸入飲料店 ID''')
 
-        feed = damnit.Feed(source="someone", message="Y")
+        feed = drinkbot.Feed(source="someone", message="Y")
+
+        result = bot.hey(feed)
+        self.assertEquals(result.message, '好')
+
+        users = ["U023BECGF"]
+        for user in users:
+            feed = drinkbot.Feed(source="#slack", message=user)
+            result = bot.hey(feed)
+            self.assertEquals(result.to, user)
+            self.assertEquals(result.message, '''
+訂飲料囉！
+drinking a，菜單如下。
+001 drink1 NT$ 10
+002 drink2 NT$ 20
+''')
+
+        feed = drinkbot.Feed(source="U023BECGF",
+                             message="001 少糖 去冰 002 去冰")
+        result = bot.hey(feed)
+        self.assertEquals(result.to, "U023BECGF")
+        self.assertEquals(result.message, '''\
+好的，已為您點了一杯 drink1 少糖 去冰，10 元。一杯 drink2 去冰，20 元。''')
+
+        feed = drinkbot.Feed(source="someone", message="點餐結束")
+
+        result = bot.hey(feed)
+        print result.message
+        self.assertEquals(result.message, '''\
+好，以下是本次的訂單統計
+drink1 少糖 去冰 x 1
+drink2 去冰 x 1
+
+共計 2 杯，30 元
+''')
+
 
 if __name__ == '__main__':
     unittest.main()
