@@ -167,15 +167,19 @@ class Bot(object):
                                      message='Invalid Shop ID'))
 
     def state_confirm_shop(self, feed):
-        if "Y" in feed.message:
+        if "y" == feed.message.strip().lower():
             return Reaction("order_drink", Response(to=feed.source,
                                                     message="好"))
+        elif "n" == feed.message.strip().lower():
+            return Reaction("select_shop", Response(to=feed.source,
+                                                    message="好，請重新選擇"))
+
+
 
     def state_order_drink(self, feed):
         '''Stateful state which will hold a global state that records
         the status of user order
         '''
-        # TODO Check the shop id
         if feed.source == '#slack':
 
             if feed.message == 'done':

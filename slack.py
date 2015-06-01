@@ -76,7 +76,6 @@ def handle_message(event):
 
                 slack.api_call('chat.postMessage',
                                channel=result.to,
-                               as_user=True,
                                text=result.message)
 
             feed = drinkbot.Feed(source="#slack",

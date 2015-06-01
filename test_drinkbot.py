@@ -34,8 +34,18 @@ class TestBot(unittest.TestCase):
 確定請輸入Y，\
 重選請重新輸入飲料店 ID''')
 
-        feed = drinkbot.Feed(source="someone", message="Y")
+        feed = drinkbot.Feed(source="someone", message="n")
+        result = bot.hey(feed)
+        self.assertEquals(result.message, '好，請重新選擇')
 
+        feed = drinkbot.Feed(source="someone", message="1")
+        result = bot.hey(feed)
+        self.assertEquals(result.message, '''\
+您要訂的是 drinking a，\
+確定請輸入Y，\
+重選請重新輸入飲料店 ID''')
+
+        feed = drinkbot.Feed(source="someone", message="Y")
         result = bot.hey(feed)
         self.assertEquals(result.message, '好')
 
