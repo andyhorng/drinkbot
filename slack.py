@@ -51,9 +51,19 @@ def handle_message(event):
         channel.send_message(result.message)
 
         if result.message == '好':
-            rt = slack.api_call('groups.info', channel=event['channel'])
+            channel = 'channels'
+            if event['channel'].startswith('G'):
+                channel = 'groups'
+
+            rt = slack.api_call('{}.info'.format(channel),
+                                channel=event['channel'])
             data = json.loads(rt)
-            for member in data['group']['members']:
+            if 'group' in data:
+                members = data['group']['members']
+            elif 'channel' in data:
+                members = data['channel']['members']
+
+            for member in members:
                 imopen = json.loads(slack.api_call('im.open', user=member))
                 if not imopen['ok']:
                     continue
@@ -66,6 +76,7 @@ def handle_message(event):
 
                 slack.api_call('chat.postMessage',
                                channel=result.to,
+                               as_user=True,
                                text=result.message)
 
             feed = drinkbot.Feed(source="#slack",
@@ -95,3 +106,7 @@ while True:
         import traceback
         import sys
         traceback.print_exc(file=sys.stdout)
+        slack.api_call('chat.postMessage',
+                       channel=config['command_channel'],
+                       as_user=True,
+                       text="Oops! 我好像被玩壞了 (last state: {})".format(bot.state))

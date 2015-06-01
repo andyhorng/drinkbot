@@ -89,7 +89,7 @@ class Bot(object):
         '''
         menu: {1: {name: xxx, items: {}}}
         '''
-        self.state = "nothing"
+        self._state = "nothing"
         self.menus = kwargs['menus']
 
         self.shop_id = None
@@ -108,6 +108,15 @@ class Bot(object):
             return result
 
         return wrapper
+
+    @property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, value):
+        self._state = value
+        return self._state
 
     @log
     def hey(self, feed):
