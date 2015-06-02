@@ -1,2 +1,3 @@
 slackclient==0.15
 pyyaml==3.11
+python-Levenshtein==0.12.0

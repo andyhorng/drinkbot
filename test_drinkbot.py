@@ -15,7 +15,7 @@ class TestBot(unittest.TestCase):
         menus[1].add_item(drinkbot.Item(id=2, name="drink2", price=20))
 
         bot = drinkbot.Bot(menus=menus)
-        feed = drinkbot.Feed(source="someone", message="我要喝飲料")
+        feed = drinkbot.Feed(source="someone", message="我要飲料")
         result = bot.hey(feed)
 
         self.assertEquals(result.message, '''\

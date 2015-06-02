@@ -109,6 +109,14 @@ class Bot(object):
 
         return wrapper
 
+    def is_equal(self, a, b):
+        from Levenshtein import distance
+        edit_dist = distance(unicode(a, 'utf-8'), unicode(b, 'utf-8'))
+        if edit_dist <= 2:
+            return True
+        else:
+            return False
+
     @property
     def state(self):
         return self._state
@@ -131,7 +139,7 @@ class Bot(object):
             return rt.response
 
     def state_nothing(self, feed):
-        if "我要喝飲料" in feed.message:
+        if self.is_equal("我要喝飲料", feed.message):
             return Reaction("select_shop",
                             Response(to=feed.source, message='''\
 好，請輸入飲料店 ID，\
@@ -242,7 +250,7 @@ class Bot(object):
                             Response(to=feed.source,
                                      message='好的，已為您點了{}'
                                      .format(order)))
-        elif "點餐結束" in feed.message:
+        elif self.is_equal("點餐結束", feed.message):
             total = count = 0
             order_summary_str = ""
             for (user_id, data) in self.user_orders.items():
