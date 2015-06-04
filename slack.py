@@ -1,16 +1,21 @@
 # -*- coding: utf-8 -*-
 from slackclient import SlackClient
-import yaml
 import logging
 import json
 import drinkbot
 import time
+import os
 
 import sys
 reload(sys)
 sys.setdefaultencoding("utf-8")
 
-config = yaml.load(open('config.yaml', 'r').read())
+config = {
+        'command_channel': os.environ.get('COMMAND_CHANNEL'),
+        'token': os.environ.get('TOKEN'),
+        'loglevel': "INFO",
+        }
+
 formatting = '[%(levelname)s] (%(threadName)-10s) %(message)s'
 logging.basicConfig(format=formatting,
                     level=getattr(logging, config['loglevel']))
