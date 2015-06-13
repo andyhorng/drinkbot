@@ -47,15 +47,14 @@ def handle_message(event):
 
     if channel.name == config['command_channel'] or\
             channel.name.startswith('D'):
-        feed = drinkbot.Feed(source=event['channel'],
+        feed = drinkbot.Feed(source=drinkbot.Channel(id=event['channel']),
                              message=event['text'].encode('utf-8'))
-        result = bot.hey(feed)
-        if not result:
-            return
 
-        channel.send_message(result.message)
+        def send(channel, message):
+            channel = slack.server.channels.find(channel.id)
+            channel.send_message(message)
 
-        if result.message == '好':
+        def fetch_users():
             channel = 'channels'
             if event['channel'].startswith('G'):
                 channel = 'groups'
@@ -68,24 +67,18 @@ def handle_message(event):
             elif 'channel' in data:
                 members = data['channel']['members']
 
+            channels = []
             for member in members:
                 imopen = json.loads(slack.api_call('im.open', user=member))
                 if not imopen['ok']:
                     continue
+                channels.append(drinkbot.Channel(id=imopen['channel']['id']))
 
-                feed = drinkbot.Feed(source="#slack",
-                                     message=imopen['channel']['id'])
-                result = bot.hey(feed)
-                if not result:
-                    continue
+            return channels
 
-                slack.api_call('chat.postMessage',
-                               channel=result.to,
-                               text=result.message)
-
-            feed = drinkbot.Feed(source="#slack",
-                                 message="done")
-            bot.hey(feed)
+        bot.register_send(send)
+        bot.register_fetch_channels(fetch_users)
+        bot.hey(feed)
 
 
 connected = slack.rtm_connect()
@@ -93,6 +86,8 @@ connected = slack.rtm_connect()
 if not connected:
     logging.error('unable to establish rtm')
     sys.exit(-1)
+
+me = json.loads(slack.api_call("auth.test"))
 
 while True:
     try:
@@ -102,6 +97,9 @@ while True:
                 continue
 
             if event['type'] == 'message':
+                if me['user_id'] == event['user']:
+                    continue
+
                 handle_message(event)
 
         time.sleep(.1)

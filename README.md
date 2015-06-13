@@ -3,12 +3,18 @@
 Drinkbot is a robot lives in slack. It was born for take care you afternoon tea. You could ask him to order drinks and summarize the orders inside the team. Enjoy the afternoon and work!
 
 
-# Installation
+# Bot
 
-Create `config.yaml` to the project root.
+Bot has a common interface that you can adapt it to any IM. Slack is the first adapter which implement essentails methods.
 
-```yaml
-token: xoxb-xoxoxoxoxoxoxoxoxoxoxo
-command_channel: testbot
-loglevel: INFO
-```
+
+* Send
+
+  * destination
+  * message
+
+* Receive
+
+  * source
+  * message
+

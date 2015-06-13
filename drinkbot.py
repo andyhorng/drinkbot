@@ -63,6 +63,13 @@ class Menu(object):
             if item.id == id:
                 return item
 
+    def message(self):
+        rt = ""
+        for item in self.items:
+            rt += ("{:03d} {} NT$ {}\n"
+                         .format(item.id, item.name, item.price))
+        return rt
+
 
 class Item(object):
     def __init__(self, *args, **kwargs):
@@ -83,6 +90,27 @@ class Item(object):
         return self._price
 
 
+class BotException(Exception):
+    def __init__(self, message):
+        self.message = message
+
+    def __str__(self):
+        return self.message
+
+class Channel(object):
+    def __init__(self, **kwargs):
+        self._id = kwargs['id']
+
+    @property
+    def id(self):
+        return self._id
+
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def __repr__(self):
+        return "channel/user id: {}".format(self.id)
+
 class Bot(object):
 
     def __init__(self, *args, **kwargs):
@@ -94,6 +122,17 @@ class Bot(object):
 
         self.shop_id = None
         self.user_orders = {}
+
+    def register_fetch_channels(self, func):
+        self.fetch_channels = func
+
+    def register_send(self, func):
+        self.send = func
+
+    def send_response(self, response):
+        if not response:
+            return
+        self.send(response.to, response.message)
 
     def log(func):
         def wrapper(*args, **kwargs):
@@ -136,7 +175,7 @@ class Bot(object):
                 return None
 
             self.state = rt.next_state
-            return rt.response
+            return self.send_response(rt.response)
 
     def state_nothing(self, feed):
         if self.is_equal("我要喝飲料", feed.message):
@@ -176,43 +215,27 @@ class Bot(object):
 
     def state_confirm_shop(self, feed):
         if "y" == feed.message.strip().lower():
-            return Reaction("order_drink", Response(to=feed.source,
+            for user in self.fetch_channels():
+                if user.id not in self.user_orders:
+                    self.user_orders[user.id] = {}
+                self.user_orders[user.id]['state'] = 'waiting'
+                self.send(user, '''
+訂飲料囉！
+{}，菜單如下。
+{}'''.format(self.menus[self.shop_id].name, self.menus[self.shop_id].message()))
+
+            return Reaction("waiting_user_order", Response(to=feed.source,
                                                     message="好"))
         elif "n" == feed.message.strip().lower():
             return Reaction("select_shop", Response(to=feed.source,
                                                     message="好，請重新選擇"))
 
-
-
-    def state_order_drink(self, feed):
-        '''Stateful state which will hold a global state that records
-        the status of user order
-        '''
-        if feed.source == '#slack':
-
-            if feed.message == 'done':
-                return Reaction('waiting_user_order', None)
-
-            user = feed.message
-            menu_str = ""
-            self.user_orders[user] = dict(state='waiting')
-            for item in self.menus[self.shop_id].items:
-                menu_str += ("{:03d} {} NT$ {}\n"
-                             .format(item.id, item.name, item.price))
-
-            return Reaction('order_drink',
-                            Response(to=user,
-                                     message='''
-訂飲料囉！
-{}，菜單如下。
-{}'''.format(self.menus[self.shop_id].name, menu_str)))
-
     def state_waiting_user_order(self, feed):
         # not order yet
         menu = self.menus[self.shop_id]
 
-        if feed.source in self.user_orders.keys() and \
-                self.user_orders[feed.source]['state'] == 'waiting':
+        if feed.source.id in self.user_orders.keys() and \
+                self.user_orders[feed.source.id]['state'] == 'waiting':
             # parsing
             ids = ["{:03d}".format(item.id) for item in menu.items]
 
@@ -243,8 +266,8 @@ class Bot(object):
                 order += ("一杯 {} {}，{} 元。"
                           .format(item.name, custom, item.price))
 
-            self.user_orders[feed.source]['state'] = 'done'
-            self.user_orders[feed.source]['items'] = items
+            self.user_orders[feed.source.id]['state'] = 'done'
+            self.user_orders[feed.source.id]['items'] = items
 
             return Reaction("waiting_user_order",
                             Response(to=feed.source,
