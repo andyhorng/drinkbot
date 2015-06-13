@@ -1,6 +1,7 @@
 # coding: utf-8
 import unittest
 import drinkbot
+from mock import Mock, call
 
 
 class TestBot(unittest.TestCase):
@@ -15,75 +16,110 @@ class TestBot(unittest.TestCase):
         menus[1].add_item(drinkbot.Item(id=2, name="drink2", price=20))
 
         bot = drinkbot.Bot(menus=menus)
-        feed = drinkbot.Feed(source="someone", message="我要飲料")
-        result = bot.hey(feed)
 
-        self.assertEquals(result.message, '''\
+        # bot.register_fetch_users()
+
+        ##################
+        feed = drinkbot.Feed(source=drinkbot.Channel(id="someone"), message="我要飲料")
+        mock = Mock(return_value=None)
+        bot.register_send(mock)
+        bot.hey(feed)
+        mock.assert_called_once_with(drinkbot.Channel(id="someone"), '''\
 好，請輸入飲料店 ID，\
 或輸入list來列出所有飲料店。\
 或直接輸入您的訂單編號。''')
+        ##################
 
-        feed = drinkbot.Feed(source="someone", message="list")
-        result = bot.hey(feed)
-        self.assertEquals(result.message, '1: drinking a, 2: drinking b')
+        ##################
+        feed = drinkbot.Feed(source=drinkbot.Channel(id="someone"), message="list")
+        mock = Mock(return_value=None)
+        bot.register_send(mock)
+        bot.hey(feed)
+        mock.assert_called_once_with(drinkbot.Channel(id="someone"), '1: drinking a, 2: drinking b')
+        ##################
 
-        feed = drinkbot.Feed(source="someone", message="1")
-        result = bot.hey(feed)
-        self.assertEquals(result.message, '''\
+        ##################
+        feed = drinkbot.Feed(source=drinkbot.Channel(id="someone"), message="1")
+        mock = Mock(return_value=None)
+        bot.register_send(mock)
+        bot.hey(feed)
+        mock.assert_called_once_with(drinkbot.Channel(id="someone"), '''\
 您要訂的是 drinking a，\
 確定請輸入Y，\
 重選請重新輸入飲料店 ID''')
+        ##################
 
-        feed = drinkbot.Feed(source="someone", message="n")
-        result = bot.hey(feed)
-        self.assertEquals(result.message, '好，請重新選擇')
+        ##################
+        feed = drinkbot.Feed(source=drinkbot.Channel(id="someone"), message="n")
+        mock = Mock(return_value=None)
+        bot.register_send(mock)
+        bot.hey(feed)
+        mock.assert_called_once_with(drinkbot.Channel(id="someone"), '好，請重新選擇')
+        ##################
 
-        feed = drinkbot.Feed(source="someone", message="1")
-        result = bot.hey(feed)
-        self.assertEquals(result.message, '''\
+        ##################
+        feed = drinkbot.Feed(source=drinkbot.Channel(id="someone"), message="1")
+        mock = Mock(return_value=None)
+        bot.register_send(mock)
+        bot.hey(feed)
+        mock.assert_called_once_with(drinkbot.Channel(id="someone"), '''\
 您要訂的是 drinking a，\
 確定請輸入Y，\
 重選請重新輸入飲料店 ID''')
+        ##################
 
-        feed = drinkbot.Feed(source="someone", message="Y")
-        result = bot.hey(feed)
-        self.assertEquals(result.message, '好')
+        ##################
+        feed = drinkbot.Feed(source=drinkbot.Channel(id="someone"), message="Y")
+        mock = Mock(return_value=None)
+        bot.register_send(mock)
 
         users = ["DM01", "DM02"]
+
+        fetch_users_mock = Mock(return_value=
+                                [drinkbot.Channel(id=v) for v in users])
+        bot.register_fetch_channels(fetch_users_mock)
+
+        bot.hey(feed)
+
+        fetch_users_mock.assert_called_once_with()
+
+        expected = []
         for user in users:
-            feed = drinkbot.Feed(source="#slack", message=user)
-            result = bot.hey(feed)
-            self.assertEquals(result.to, user)
-            self.assertEquals(result.message, '''
+            expected.append(call(drinkbot.Channel(id=user), '''
 訂飲料囉！
 drinking a，菜單如下。
 001 drink1 NT$ 10
 002 drink2 NT$ 20
-''')
+'''))
+        expected.append(call(drinkbot.Channel(id="someone"), '好'))
 
-        feed = drinkbot.Feed(source="#slack", message="done")
-        bot.hey(feed)
+        self.assertListEqual(expected, mock.call_args_list)
+
+        ##################
 
         # user 1
-        feed = drinkbot.Feed(source="DM01",
+        feed = drinkbot.Feed(source=drinkbot.Channel(id="DM01"),
                              message="001 少糖 去冰 002 去冰")
-        result = bot.hey(feed)
-        self.assertEquals(result.to, "DM01")
-        self.assertEquals(result.message, '''\
+        mock = Mock(return_value=None)
+        bot.register_send(mock)
+        bot.hey(feed)
+        mock.assert_called_once_with(drinkbot.Channel(id="DM01"), '''\
 好的，已為您點了一杯 drink1 少糖 去冰，10 元。一杯 drink2 去冰，20 元。''')
 
         # user 2
-        feed = drinkbot.Feed(source="DM02",
+        feed = drinkbot.Feed(source=drinkbot.Channel(id="DM02"),
                              message="002 少糖 去冰")
-        result = bot.hey(feed)
-        self.assertEquals(result.to, "DM02")
-        self.assertEquals(result.message, '''\
+        mock = Mock(return_value=None)
+        bot.register_send(mock)
+        bot.hey(feed)
+        mock.assert_called_once_with(drinkbot.Channel(id="DM02"), '''\
 好的，已為您點了一杯 drink2 少糖 去冰，20 元。''')
 
-        feed = drinkbot.Feed(source="someone", message="點餐結束")
-
-        result = bot.hey(feed)
-        self.assertEquals(result.message, '''\
+        feed = drinkbot.Feed(source=drinkbot.Channel(id="someone"), message="點餐結束")
+        mock = Mock(return_value=None)
+        bot.register_send(mock)
+        bot.hey(feed)
+        mock.assert_called_once_with(drinkbot.Channel(id="someone"), '''\
 好，以下是本次的訂單統計
 drink1 少糖 去冰 x 1
 drink2 去冰 x 1
