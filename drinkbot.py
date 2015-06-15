@@ -111,18 +111,20 @@ class Channel(object):
     def __repr__(self):
         return "channel/user id: {}".format(self.id)
 
-class Bot(object):
+class Reaction(object):
+    def __init__(self, next_state, response):
+        self._next_state = next_state
+        self._response = response
 
-    def __init__(self, *args, **kwargs):
-        '''
-        menu: {1: {name: xxx, items: {}}}
-        '''
-        self._state = "nothing"
-        self.menus = kwargs['menus']
+    @property
+    def next_state(self):
+        return self._next_state
 
-        self.shop_id = None
-        self.user_orders = {}
+    @property
+    def response(self):
+        return self._response
 
+class AbstractBot(object):
     def register_fetch_channels(self, func):
         self.fetch_channels = func
 
@@ -148,23 +150,6 @@ class Bot(object):
 
         return wrapper
 
-    def is_equal(self, a, b):
-        from Levenshtein import distance
-        edit_dist = distance(unicode(a, 'utf-8'), unicode(b, 'utf-8'))
-        if edit_dist <= 2:
-            return True
-        else:
-            return False
-
-    @property
-    def state(self):
-        return self._state
-
-    @state.setter
-    def state(self, value):
-        self._state = value
-        return self._state
-
     @log
     def hey(self, feed):
         logging.info("Status: {}".format(self.state))
@@ -176,6 +161,36 @@ class Bot(object):
 
             self.state = rt.next_state
             return self.send_response(rt.response)
+
+    def is_equal(self, a, b):
+        from Levenshtein import distance
+        edit_dist = distance(unicode(a, 'utf-8'), unicode(b, 'utf-8'))
+        if edit_dist <= 2:
+            return True
+        else:
+            return False
+
+
+class Bot(AbstractBot):
+
+    def __init__(self, *args, **kwargs):
+        '''
+        menu: {1: {name: xxx, items: {}}}
+        '''
+        self._state = "nothing"
+        self.menus = kwargs['menus']
+
+        self.shop_id = None
+        self.user_orders = {}
+
+    @property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, value):
+        self._state = value
+        return self._state
 
     def state_nothing(self, feed):
         if self.is_equal("我要喝飲料", feed.message):
@@ -296,15 +311,3 @@ class Bot(object):
 '''.format(order_summary_str, count, total)))
 
 
-class Reaction(object):
-    def __init__(self, next_state, response):
-        self._next_state = next_state
-        self._response = response
-
-    @property
-    def next_state(self):
-        return self._next_state
-
-    @property
-    def response(self):
-        return self._response

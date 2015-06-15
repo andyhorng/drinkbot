@@ -42,9 +42,6 @@ def handle_message(event):
     # get channel name
     channel = slack.server.channels.find(event['channel'])
     logging.info("channel name: {}".format(channel.name))
-    if 'subtype' in event and event['subtype'] == 'bot_message':
-        return
-
     if channel.name == config['command_channel'] or\
             channel.name.startswith('D'):
         feed = drinkbot.Feed(source=drinkbot.Channel(id=event['channel']),
@@ -97,6 +94,8 @@ while True:
                 continue
 
             if event['type'] == 'message':
+                if 'subtype' in event:
+                    continue
                 if me['user_id'] == event['user']:
                     continue
 
