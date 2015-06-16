@@ -59,9 +59,10 @@ class Menu(object):
         return self._items
 
     def get_item(self, id):
+        import copy
         for item in self.items:
             if item.id == id:
-                return item
+                return copy.copy(item)
 
     def message(self):
         rt = ""
@@ -76,6 +77,7 @@ class Item(object):
         self._id = kwargs['id']
         self._name = kwargs['name']
         self._price = kwargs['price']
+        self._custom = kwargs['custom'] if 'custom' in kwargs else ''
 
     @property
     def id(self):
@@ -88,6 +90,15 @@ class Item(object):
     @property
     def price(self):
         return self._price
+
+    @property
+    def custom(self):
+        return self._custom
+
+    @custom.setter
+    def custom(self, custom):
+        self._custom = custom
+        return self._custom
 
 
 class BotException(Exception):
@@ -152,7 +163,8 @@ class AbstractBot(object):
 
     @log
     def hey(self, feed):
-        logging.info("Status: {}".format(self.state))
+        logging.info("{} status: {}".format(self.__class__.__name__,
+                                            self.state))
         action = getattr(self, "state_{}".format(self.state))
         if action:
             rt = action(feed)
@@ -170,19 +182,6 @@ class AbstractBot(object):
         else:
             return False
 
-
-class Bot(AbstractBot):
-
-    def __init__(self, *args, **kwargs):
-        '''
-        menu: {1: {name: xxx, items: {}}}
-        '''
-        self._state = "nothing"
-        self.menus = kwargs['menus']
-
-        self.shop_id = None
-        self.user_orders = {}
-
     @property
     def state(self):
         return self._state
@@ -191,6 +190,90 @@ class Bot(AbstractBot):
     def state(self, value):
         self._state = value
         return self._state
+
+class TinyBot(AbstractBot):
+    '''This bot responses for the order of each user. When the bot entered the
+    waiting user orders, which will spawn many tiny bots to maintain
+    the user orders.
+    '''
+    def __init__(self, **kwargs):
+        self.user = kwargs['user']
+        self.menu = kwargs['menu']
+        self.state = "send_menu"
+        self._items = []
+
+    def state_send_menu(self, feed):
+        self.send(self.user, '''
+訂飲料囉！
+{}，菜單如下。
+{}'''.format(self.menu.name, self.menu.message()))
+
+        return Reaction("waiting", None)
+
+    def state_waiting(self, feed):
+        ids = ["{:03d}".format(item.id) for item in self.menu.items]
+
+        selecteds = {}
+        for id in ids:
+            ix = feed.message.find(id)
+            if ix >= 0:
+                selecteds[ix] = id
+
+        if not len(selecteds.keys()):
+            return None
+
+        import operator
+        import re
+        items = sorted(selecteds.items(), key=operator.itemgetter(0))
+        rx = ""
+        for item in items:
+            rx += ".*({})(.*)".format(item[1])
+
+        order = ""
+        matched = re.match(rx, feed.message)
+        groups = matched.groups()
+        items = []
+        for i in range(0, len(groups), 2):
+            item = self.menu.get_item(int(groups[i]))
+            custom = groups[i+1].strip()
+            item.custom = custom
+            items.append(item)
+            order += ("一杯 {} {}，{} 元。"
+                      .format(item.name, item.custom, item.price))
+
+        self._items = items
+
+        return Reaction("done",
+                        Response(to=feed.source,
+                                 message='好的，已為您點了{}'
+                                 .format(order)))
+
+    def state_done(self):
+        return Reaction("done", None)
+
+    @property
+    def items(self):
+        return self._items
+
+
+class Bot(AbstractBot):
+
+    def __init__(self, **kwargs):
+        '''
+        menu: {1: {name: xxx, items: {}}}
+        '''
+        self._state = "nothing"
+        self.menus = kwargs['menus']
+
+        self.shop_id = None
+        self.tiny_bots = {}
+
+    def register_send(self, send):
+        for tiny in self.tiny_bots.values():
+            tiny.register_send(send)
+
+        return super(Bot, self).register_send(send)
+
 
     def state_nothing(self, feed):
         if self.is_equal("我要喝飲料", feed.message):
@@ -231,13 +314,13 @@ class Bot(AbstractBot):
     def state_confirm_shop(self, feed):
         if "y" == feed.message.strip().lower():
             for user in self.fetch_channels():
-                if user.id not in self.user_orders:
-                    self.user_orders[user.id] = {}
-                self.user_orders[user.id]['state'] = 'waiting'
-                self.send(user, '''
-訂飲料囉！
-{}，菜單如下。
-{}'''.format(self.menus[self.shop_id].name, self.menus[self.shop_id].message()))
+                if user.id not in self.tiny_bots:
+                    # create the tiny bot to serve people
+                    tiny = TinyBot(user=user, menu=self.menus[self.shop_id])
+                    tiny.register_send(self.send)
+                    self.tiny_bots[user.id] = tiny
+                    # dummy msg to trigger process
+                    tiny.hey(Feed(source=user, message=""))
 
             return Reaction("waiting_user_order", Response(to=feed.source,
                                                     message="好"))
@@ -246,61 +329,22 @@ class Bot(AbstractBot):
                                                     message="好，請重新選擇"))
 
     def state_waiting_user_order(self, feed):
-        # not order yet
-        menu = self.menus[self.shop_id]
+        if feed.source.id in self.tiny_bots:
+            # dispatch feed to tiny bots
+            tiny_bot = self.tiny_bots[feed.source.id]
+            tiny_bot.hey(feed)
 
-        if feed.source.id in self.user_orders.keys() and \
-                self.user_orders[feed.source.id]['state'] == 'waiting':
-            # parsing
-            ids = ["{:03d}".format(item.id) for item in menu.items]
+            return Reaction('waiting_user_order', None)
 
-            selecteds = {}
-            for id in ids:
-                ix = feed.message.find(id)
-                if ix >= 0:
-                    selecteds[ix] = id
-
-            if not len(selecteds.keys()):
-                return None
-
-            import operator
-            import re
-            items = sorted(selecteds.items(), key=operator.itemgetter(0))
-            rx = ""
-            for item in items:
-                rx += ".*({})(.*)".format(item[1])
-
-            order = ""
-            matched = re.match(rx, feed.message)
-            groups = matched.groups()
-            items = []
-            for i in range(0, len(groups), 2):
-                item = menu.get_item(int(groups[i]))
-                custom = groups[i+1].strip()
-                items.append((item, custom))
-                order += ("一杯 {} {}，{} 元。"
-                          .format(item.name, custom, item.price))
-
-            self.user_orders[feed.source.id]['state'] = 'done'
-            self.user_orders[feed.source.id]['items'] = items
-
-            return Reaction("waiting_user_order",
-                            Response(to=feed.source,
-                                     message='好的，已為您點了{}'
-                                     .format(order)))
         elif self.is_equal("點餐結束", feed.message):
             total = count = 0
             order_summary_str = ""
-            for (user_id, data) in self.user_orders.items():
-
-                if data['state'] != 'done':
-                    continue
-
-                for (item, custom) in data['items']:
+            for tiny in self.tiny_bots.values():
+                for item in tiny.items:
                     total += item.price
                     count += 1
                     order_summary_str += ("{} {} x 1\n"
-                                          .format(item.name, custom))
+                                          .format(item.name, item.custom))
 
             return Reaction("nothing",
                             Response(to=feed.source,
@@ -309,5 +353,3 @@ class Bot(AbstractBot):
 {}
 共計 {} 杯，{} 元
 '''.format(order_summary_str, count, total)))
-
-
