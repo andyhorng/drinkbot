@@ -167,20 +167,31 @@ class AbstractBot(object):
                                             self.state))
         action = getattr(self, "state_{}".format(self.state))
         if action:
-            rt = action(feed)
+            rt = self.all(feed)
+            if not rt:
+                rt = action(feed)
+
             if not rt:
                 return None
 
             self.state = rt.next_state
             return self.send_response(rt.response)
 
-    def is_equal(self, a, b):
+    def is_equal(self, expected, s):
         from Levenshtein import distance
-        edit_dist = distance(unicode(a, 'utf-8'), unicode(b, 'utf-8'))
-        if edit_dist <= 2:
+        import math
+        edit_dist = distance(unicode(expected, 'utf-8'), unicode(s, 'utf-8'))
+        threshold = math.ceil(len(unicode(expected, 'utf-8')) * 2 / 5)
+
+        if edit_dist <= threshold:
             return True
         else:
             return False
+
+    def all(self, feed):
+        '''Triggered on every action transistion
+        '''
+        return None
 
     @property
     def state(self):
@@ -248,8 +259,14 @@ class TinyBot(AbstractBot):
                                  message='好的，已為您點了{}'
                                  .format(order)))
 
-    def state_done(self):
+    def state_done(self, feed):
         return Reaction("done", None)
+
+    def all(self, feed):
+        if self.is_equal("取消", feed.message):
+            return Reaction("send_menu", Response(to=feed.source,
+                                                  message="已取消"))
+        return None
 
     @property
     def items(self):
@@ -267,6 +284,14 @@ class Bot(AbstractBot):
 
         self.shop_id = None
         self.tiny_bots = {}
+
+    def all(self, feed):
+        possibles = ["取消", "閉嘴", "關掉"]
+        for possible in possibles:
+            if self.is_equal(possible, feed.message):
+                return Reaction("nothing", Response(to=feed.source,
+                                                  message="好的"))
+        return None
 
     def register_send(self, send):
         for tiny in self.tiny_bots.values():
