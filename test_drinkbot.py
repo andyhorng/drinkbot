@@ -1,6 +1,7 @@
 # coding: utf-8
 import unittest
 import drinkbot
+import menu
 from mock import Mock, call
 
 
@@ -9,13 +10,16 @@ class TestBot(unittest.TestCase):
     # This unit test is flow-based
 
     def test_normal_flow(self):
-        menus = {1: drinkbot.Menu(id=1, name="drinking a"),
-                 2: drinkbot.Menu(id=2, name="drinking b"), }
+        def menus_getter():
+            menus = {1: menu.Menu(id=1, name="drinking a"),
+                     2: menu.Menu(id=2, name="drinking b"), }
 
-        menus[1].add_item(drinkbot.Item(id=1, name="drink1", price=10))
-        menus[1].add_item(drinkbot.Item(id=2, name="drink2", price=20))
+            menus[1].add_item(menu.Item(id=1, name="drink1", price=10))
+            menus[1].add_item(menu.Item(id=2, name="drink2", price=20))
 
-        bot = drinkbot.Bot(menus=menus)
+            return menus
+
+        bot = drinkbot.Bot(menus_getter=menus_getter)
 
         # bot.register_fetch_users()
 

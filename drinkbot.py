@@ -37,70 +37,6 @@ class Response(object):
         return "to: {}, msg: {}".format(self.to, self.message)
 
 
-class Menu(object):
-    def __init__(self, *args, **kwargs):
-        self._items = []
-        self._name = kwargs['name']
-        self._id = kwargs['id']
-
-    def add_item(self, item):
-        self._items.append(item)
-
-    @property
-    def id(self):
-        return self._id
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def items(self):
-        return self._items
-
-    def get_item(self, id):
-        import copy
-        for item in self.items:
-            if item.id == id:
-                return copy.copy(item)
-
-    def message(self):
-        rt = ""
-        for item in self.items:
-            rt += ("{:03d} {} NT$ {}\n"
-                         .format(item.id, item.name, item.price))
-        return rt
-
-
-class Item(object):
-    def __init__(self, *args, **kwargs):
-        self._id = kwargs['id']
-        self._name = kwargs['name']
-        self._price = kwargs['price']
-        self._custom = kwargs['custom'] if 'custom' in kwargs else ''
-
-    @property
-    def id(self):
-        return self._id
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def price(self):
-        return self._price
-
-    @property
-    def custom(self):
-        return self._custom
-
-    @custom.setter
-    def custom(self, custom):
-        self._custom = custom
-        return self._custom
-
-
 class BotException(Exception):
     def __init__(self, message):
         self.message = message
@@ -280,10 +216,14 @@ class Bot(AbstractBot):
         menu: {1: {name: xxx, items: {}}}
         '''
         self._state = "nothing"
-        self.menus = kwargs['menus']
+        self.menus_getter = kwargs['menus_getter']
 
         self.shop_id = None
         self.tiny_bots = {}
+
+    @property
+    def menus(self):
+        return self.menus_getter()
 
     def all(self, feed):
         possibles = ["取消", "閉嘴", "關掉"]

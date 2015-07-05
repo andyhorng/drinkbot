@@ -3,6 +3,7 @@ from slackclient import SlackClient
 import logging
 import json
 import drinkbot
+import menu
 import time
 import os
 
@@ -22,21 +23,7 @@ logging.basicConfig(format=formatting,
 
 slack = SlackClient(config['token'])
 
-raw_menu = json.load(open('./menu.json', 'r'))
-menus = {}
-id = 0
-for shop_name, items in raw_menu.items():
-    id += 1
-    menus[id] = drinkbot.Menu(id=id, name=shop_name)
-    item_id = 0
-    for item in items:
-        item_id += 1
-        menus[id].add_item(drinkbot
-                           .Item(id=item_id,
-                                 name=item['name'], price=item['price']))
-
-bot = drinkbot.Bot(menus=menus)
-
+bot = drinkbot.Bot(menus_getter=menu.fetch_menus)
 
 def handle_message(event):
     # get channel name
