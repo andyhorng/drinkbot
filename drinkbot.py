@@ -124,6 +124,7 @@ class AbstractBot(object):
         else:
             return False
 
+    # TODO: refactoring to decorator and apply to the required state handler
     def all(self, feed):
         '''Triggered on every action transistion
         '''
@@ -310,6 +311,7 @@ class Bot(AbstractBot):
                     order_summary_str += ("{} {} x 1\n"
                                           .format(item.name, item.custom))
 
+            # TODO refactoring to a helper
             return Reaction("nothing",
                             Response(to=feed.source,
                                      message=("好，以下是本次的訂單統計\n"
