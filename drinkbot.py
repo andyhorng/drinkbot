@@ -242,6 +242,8 @@ class Bot(AbstractBot):
 
     def state_nothing(self, feed):
         if self.is_equal("我要喝飲料", feed.message):
+            self.shop_id = None
+            self.tiny_bots = {}
             return Reaction("select_shop",
                             Response(to=feed.source, message='''\
 好，請輸入飲料店 ID，\
