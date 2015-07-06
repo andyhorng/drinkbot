@@ -108,7 +108,7 @@ class TestBot(unittest.TestCase):
 
         expected = []
         for user in users:
-            expected.append(call(drinkbot.Channel(id=user), '''
+            expected.append(call(drinkbot.Channel(id=user), '''\
 訂飲料囉！
 drinking a，菜單如下。
 001 drink1 NT$ 10

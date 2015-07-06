@@ -150,10 +150,10 @@ class TinyBot(AbstractBot):
         self._items = []
 
     def state_send_menu(self, feed):
-        self.send(self.user, '''
-訂飲料囉！
-{}，菜單如下。
-{}'''.format(self.menu.name, self.menu.message()))
+        self.send(self.user, (
+                "訂飲料囉！\n"
+                "{}，菜單如下。\n"
+                "{}").format(self.menu.name, self.menu.message()))
 
         return Reaction("waiting", None)
 
@@ -245,10 +245,9 @@ class Bot(AbstractBot):
             self.shop_id = None
             self.tiny_bots = {}
             return Reaction("select_shop",
-                            Response(to=feed.source, message='''\
-好，請輸入飲料店 ID，\
-或輸入list來列出所有飲料店。\
-或直接輸入您的訂單編號。'''))
+                            Response(to=feed.source,
+                                message=('好，請輸入飲料店 ID，或輸入list來列出所有飲料店。或直接輸入您的訂單編號。')))
+
         elif "背菜單" in feed.message:
             pass
 
@@ -265,10 +264,8 @@ class Bot(AbstractBot):
             if selection in shop_ids:
                 self.shop_id = selection
                 return Reaction('confirm_shop', Response(to=feed.source,
-                                message='''\
-您要訂的是 {}，\
-確定請輸入Y，\
-重選請重新輸入飲料店 ID'''.format(self.menus[selection].name)))
+                                message='您要訂的是 {}，確定請輸入Y，重選請重新輸入飲料店 ID'
+                                .format(self.menus[selection].name)))
             else:
                 return Reaction('select_shop',
                                 Response(to=feed.source,
@@ -315,8 +312,7 @@ class Bot(AbstractBot):
 
             return Reaction("nothing",
                             Response(to=feed.source,
-                                     message='''\
-好，以下是本次的訂單統計
-{}
-共計 {} 杯，{} 元
-'''.format(order_summary_str, count, total)))
+                                     message=("好，以下是本次的訂單統計\n"
+                                              "{}\n"
+                                              "共計 {} 杯，{} 元\n"
+                                              ).format(order_summary_str, count, total)))
