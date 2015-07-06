@@ -12,10 +12,10 @@ reload(sys)
 sys.setdefaultencoding("utf-8")
 
 config = {
-        'command_channel': os.environ.get('COMMAND_CHANNEL'),
-        'token': os.environ.get('TOKEN'),
-        'loglevel': "INFO",
-        }
+    'command_channel': os.environ.get('COMMAND_CHANNEL'),
+    'token': os.environ.get('TOKEN'),
+    'loglevel': "INFO",
+}
 
 formatting = '[%(levelname)s] (%(threadName)-10s) %(message)s'
 logging.basicConfig(format=formatting,
@@ -24,6 +24,7 @@ logging.basicConfig(format=formatting,
 slack = SlackClient(config['token'])
 
 bot = drinkbot.Bot(menus_getter=menu.fetch_menus)
+
 
 def handle_message(event):
     # get channel name

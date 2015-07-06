@@ -4,6 +4,7 @@ import logging
 
 
 class Feed(object):
+
     def __init__(self, *args, **kwargs):
         self._source = kwargs['source']
         self._message = kwargs['message']
@@ -21,6 +22,7 @@ class Feed(object):
 
 
 class Response(object):
+
     def __init__(self, *args, **kwargs):
         self._to = kwargs['to']
         self._message = kwargs['message']
@@ -38,13 +40,16 @@ class Response(object):
 
 
 class BotException(Exception):
+
     def __init__(self, message):
         self.message = message
 
     def __str__(self):
         return self.message
 
+
 class Channel(object):
+
     def __init__(self, **kwargs):
         self._id = kwargs['id']
 
@@ -58,7 +63,9 @@ class Channel(object):
     def __repr__(self):
         return "channel/user id: {}".format(self.id)
 
+
 class Reaction(object):
+
     def __init__(self, next_state, response):
         self._next_state = next_state
         self._response = response
@@ -71,7 +78,9 @@ class Reaction(object):
     def response(self):
         return self._response
 
+
 class AbstractBot(object):
+
     def register_fetch_channels(self, func):
         self.fetch_channels = func
 
@@ -139,11 +148,14 @@ class AbstractBot(object):
         self._state = value
         return self._state
 
+
 class TinyBot(AbstractBot):
+
     '''This bot responses for the order of each user. When the bot entered the
     waiting user orders, which will spawn many tiny bots to maintain
     the user orders.
     '''
+
     def __init__(self, **kwargs):
         self.user = kwargs['user']
         self.menu = kwargs['menu']
@@ -152,9 +164,9 @@ class TinyBot(AbstractBot):
 
     def state_send_menu(self, feed):
         self.send(self.user, (
-                "訂飲料囉！\n"
-                "{}，菜單如下。\n"
-                "{}").format(self.menu.name, self.menu.message()))
+            "訂飲料囉！\n"
+            "{}，菜單如下。\n"
+            "{}").format(self.menu.name, self.menu.message()))
 
         return Reaction("waiting", None)
 
@@ -183,7 +195,7 @@ class TinyBot(AbstractBot):
         items = []
         for i in range(0, len(groups), 2):
             item = self.menu.get_item(int(groups[i]))
-            custom = groups[i+1].strip()
+            custom = groups[i + 1].strip()
             item.custom = custom
             items.append(item)
             order += ("一杯 {} {}，{} 元。"
@@ -231,7 +243,7 @@ class Bot(AbstractBot):
         for possible in possibles:
             if self.is_equal(possible, feed.message):
                 return Reaction("nothing", Response(to=feed.source,
-                                                  message="好的"))
+                                                    message="好的"))
         return None
 
     def register_send(self, send):
@@ -240,14 +252,15 @@ class Bot(AbstractBot):
 
         return super(Bot, self).register_send(send)
 
-
     def state_nothing(self, feed):
         if self.is_equal("我要喝飲料", feed.message):
             self.shop_id = None
             self.tiny_bots = {}
-            return Reaction("select_shop",
-                            Response(to=feed.source,
-                                message=('好，請輸入飲料店 ID，或輸入list來列出所有飲料店。或直接輸入您的訂單編號。')))
+            return Reaction(
+                "select_shop",
+                Response(
+                    to=feed.source,
+                    message=('好，請輸入飲料店 ID，或輸入list來列出所有飲料店。或直接輸入您的訂單編號。')))
 
         elif "背菜單" in feed.message:
             pass
@@ -264,9 +277,12 @@ class Bot(AbstractBot):
             selection = int(feed.message)
             if selection in shop_ids:
                 self.shop_id = selection
-                return Reaction('confirm_shop', Response(to=feed.source,
-                                message='您要訂的是 {}，確定請輸入Y，重選請重新輸入飲料店 ID'
-                                .format(self.menus[selection].name)))
+                return Reaction(
+                    'confirm_shop',
+                    Response(
+                        to=feed.source,
+                        message='您要訂的是 {}，確定請輸入Y，重選請重新輸入飲料店 ID' .format(
+                            self.menus[selection].name)))
             else:
                 return Reaction('select_shop',
                                 Response(to=feed.source,
@@ -288,7 +304,7 @@ class Bot(AbstractBot):
                     tiny.hey(Feed(source=user, message=""))
 
             return Reaction("waiting_user_order", Response(to=feed.source,
-                                                    message="好"))
+                                                           message="好"))
         elif "n" == feed.message.strip().lower():
             return Reaction("select_shop", Response(to=feed.source,
                                                     message="好，請重新選擇"))
@@ -312,9 +328,14 @@ class Bot(AbstractBot):
                                           .format(item.name, item.custom))
 
             # TODO refactoring to a helper
-            return Reaction("nothing",
-                            Response(to=feed.source,
-                                     message=("好，以下是本次的訂單統計\n"
-                                              "{}\n"
-                                              "共計 {} 杯，{} 元\n"
-                                              ).format(order_summary_str, count, total)))
+            return Reaction(
+                "nothing",
+                Response(
+                    to=feed.source,
+                    message=(
+                        "好，以下是本次的訂單統計\n"
+                        "{}\n"
+                        "共計 {} 杯，{} 元\n").format(
+                        order_summary_str,
+                        count,
+                        total)))

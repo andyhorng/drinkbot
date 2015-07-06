@@ -1,7 +1,9 @@
 import json
 import urllib2
 
+
 class Menu(object):
+
     def __init__(self, *args, **kwargs):
         self._items = []
         self._name = kwargs['name']
@@ -32,11 +34,12 @@ class Menu(object):
         rt = ""
         for item in self.items:
             rt += ("{:03d} {} NT$ {}\n"
-                         .format(item.id, item.name, item.price))
+                   .format(item.id, item.name, item.price))
         return rt
 
 
 class Item(object):
+
     def __init__(self, *args, **kwargs):
         self._id = kwargs['id']
         self._name = kwargs['name']
@@ -64,8 +67,10 @@ class Item(object):
         self._custom = custom
         return self._custom
 
+
 def fetch_menus():
-    raw_menus = json.loads(urllib2.urlopen("https://alva-land.appspot.com/api/menu").read())
+    raw_menus = json.loads(
+        urllib2.urlopen("https://alva-land.appspot.com/api/menu").read())
 
     menus = {}
     id = 0

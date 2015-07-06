@@ -24,7 +24,10 @@ class TestBot(unittest.TestCase):
         # bot.register_fetch_users()
 
         ##################
-        feed = drinkbot.Feed(source=drinkbot.Channel(id="someone"), message="我要飲料")
+        feed = drinkbot.Feed(
+            source=drinkbot.Channel(
+                id="someone"),
+            message="我要飲料")
         mock = Mock(return_value=None)
         bot.register_send(mock)
         bot.hey(feed)
@@ -35,7 +38,10 @@ class TestBot(unittest.TestCase):
         ##################
 
         ##################
-        feed = drinkbot.Feed(source=drinkbot.Channel(id="someone"), message="閉嘴")
+        feed = drinkbot.Feed(
+            source=drinkbot.Channel(
+                id="someone"),
+            message="閉嘴")
         mock = Mock(return_value=None)
         bot.register_send(mock)
         bot.hey(feed)
@@ -43,7 +49,10 @@ class TestBot(unittest.TestCase):
         ##################
 
         ##################
-        feed = drinkbot.Feed(source=drinkbot.Channel(id="someone"), message="我要飲料")
+        feed = drinkbot.Feed(
+            source=drinkbot.Channel(
+                id="someone"),
+            message="我要飲料")
         mock = Mock(return_value=None)
         bot.register_send(mock)
         bot.hey(feed)
@@ -54,15 +63,24 @@ class TestBot(unittest.TestCase):
         ##################
 
         ##################
-        feed = drinkbot.Feed(source=drinkbot.Channel(id="someone"), message="list")
+        feed = drinkbot.Feed(
+            source=drinkbot.Channel(
+                id="someone"),
+            message="list")
         mock = Mock(return_value=None)
         bot.register_send(mock)
         bot.hey(feed)
-        mock.assert_called_once_with(drinkbot.Channel(id="someone"), '1: drinking a, 2: drinking b')
+        mock.assert_called_once_with(
+            drinkbot.Channel(
+                id="someone"),
+            '1: drinking a, 2: drinking b')
         ##################
 
         ##################
-        feed = drinkbot.Feed(source=drinkbot.Channel(id="someone"), message="1")
+        feed = drinkbot.Feed(
+            source=drinkbot.Channel(
+                id="someone"),
+            message="1")
         mock = Mock(return_value=None)
         bot.register_send(mock)
         bot.hey(feed)
@@ -73,7 +91,10 @@ class TestBot(unittest.TestCase):
         ##################
 
         ##################
-        feed = drinkbot.Feed(source=drinkbot.Channel(id="someone"), message="n")
+        feed = drinkbot.Feed(
+            source=drinkbot.Channel(
+                id="someone"),
+            message="n")
         mock = Mock(return_value=None)
         bot.register_send(mock)
         bot.hey(feed)
@@ -81,7 +102,10 @@ class TestBot(unittest.TestCase):
         ##################
 
         ##################
-        feed = drinkbot.Feed(source=drinkbot.Channel(id="someone"), message="1")
+        feed = drinkbot.Feed(
+            source=drinkbot.Channel(
+                id="someone"),
+            message="1")
         mock = Mock(return_value=None)
         bot.register_send(mock)
         bot.hey(feed)
@@ -92,14 +116,19 @@ class TestBot(unittest.TestCase):
         ##################
 
         ##################
-        feed = drinkbot.Feed(source=drinkbot.Channel(id="someone"), message="Y")
+        feed = drinkbot.Feed(
+            source=drinkbot.Channel(
+                id="someone"),
+            message="Y")
         mock = Mock(return_value=None)
         bot.register_send(mock)
 
         users = ["DM01", "DM02"]
 
-        fetch_users_mock = Mock(return_value=
-                                [drinkbot.Channel(id=v) for v in users])
+        fetch_users_mock = Mock(
+            return_value=[
+                drinkbot.Channel(
+                    id=v) for v in users])
         bot.register_fetch_channels(fetch_users_mock)
 
         bot.hey(feed)
@@ -138,7 +167,10 @@ drinking a，菜單如下。
         mock.assert_called_once_with(drinkbot.Channel(id="DM02"), '''\
 好的，已為您點了一杯 drink2 少糖 去冰，20 元。''')
 
-        feed = drinkbot.Feed(source=drinkbot.Channel(id="someone"), message="點餐結束")
+        feed = drinkbot.Feed(
+            source=drinkbot.Channel(
+                id="someone"),
+            message="點餐結束")
         mock = Mock(return_value=None)
         bot.register_send(mock)
         bot.hey(feed)
