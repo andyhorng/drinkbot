@@ -11,6 +11,8 @@ import sys
 reload(sys)
 sys.setdefaultencoding("utf-8")
 
+# TODO unit test
+
 config = {
     'command_channel': os.environ.get('COMMAND_CHANNEL'),
     'token': os.environ.get('TOKEN'),
@@ -98,4 +100,4 @@ while True:
         # slack.api_call('chat.postMessage',
         #                channel=config['command_channel'],
         #                as_user=True,
-        #                text="Oops! 我好像被玩壞了 (last state: {})".format(bot.state))
+        # text="Oops! 我好像被玩壞了 (last state: {})".format(bot.state))

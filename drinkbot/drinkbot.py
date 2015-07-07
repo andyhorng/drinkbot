@@ -21,7 +21,9 @@ class Feed(object):
         return "from: {}, msg: {}".format(self.source, self.message)
 
 
-class Response(object):
+class R(object):
+
+    ''' Response Object '''
 
     def __init__(self, *args, **kwargs):
         self._to = kwargs['to']
@@ -196,17 +198,17 @@ class TinyBot(AbstractBot):
 
         self._items = items
 
-        return "done", Response(to=feed.source,
-                                message='好的，已為您點了{}'
-                                .format(order))
+        return "done", R(to=feed.source,
+                         message='好的，已為您點了{}'
+                         .format(order))
 
     def state_done(self, feed):
         return "done", None
 
     def all(self, feed):
         if self.is_equal("取消", feed.message):
-            return "send_menu", Response(to=feed.source,
-                                         message="已取消")
+            return "send_menu", R(to=feed.source,
+                                  message="已取消")
         return None
 
     @property
@@ -234,8 +236,8 @@ class Bot(AbstractBot):
         possibles = ["取消", "閉嘴", "關掉"]
         for possible in possibles:
             if self.is_equal(possible, feed.message):
-                return "nothing", Response(to=feed.source,
-                                           message="好的")
+                return "nothing", R(to=feed.source,
+                                    message="好的")
         return None
 
     def register_send(self, send):
@@ -248,7 +250,7 @@ class Bot(AbstractBot):
         if self.is_equal("我要喝飲料", feed.message):
             self.shop_id = None
             self.tiny_bots = {}
-            return "select_shop", Response(
+            return "select_shop", R(
                 to=feed.source,
                 message=('好，請輸入飲料店 ID，或輸入list來列出所有飲料店。或直接輸入您的訂單編號。'))
 
@@ -257,7 +259,7 @@ class Bot(AbstractBot):
 
     def state_select_shop(self, feed):
         if 'list' in feed.message:
-            return 'select_shop', Response(
+            return 'select_shop', R(
                 to=feed.source,
                 message=", ".join("{}: {}".format(m.id, m.name)
                                   for m in self.menus.values()))
@@ -267,16 +269,16 @@ class Bot(AbstractBot):
             selection = int(feed.message)
             if selection in shop_ids:
                 self.shop_id = selection
-                return 'confirm_shop', Response(
+                return 'confirm_shop', R(
                     to=feed.source,
                     message='您要訂的是 {}，確定請輸入Y，重選請重新輸入飲料店 ID' .format(
                             self.menus[selection].name))
             else:
-                return 'select_shop', Response(to=feed.source,
-                                               message='Unavailable Shop ID')
+                return 'select_shop', R(to=feed.source,
+                                        message='Unavailable Shop ID')
         except:
-            return 'select_shop', Response(to=feed.source,
-                                           message='Invalid Shop ID')
+            return 'select_shop', R(to=feed.source,
+                                    message='Invalid Shop ID')
 
     def state_confirm_shop(self, feed):
         if "y" == feed.message.strip().lower():
@@ -289,9 +291,9 @@ class Bot(AbstractBot):
                     # dummy msg to trigger process
                     tiny.hey(Feed(source=user, message=""))
 
-            return "waiting_user_order", Response(to=feed.source, message="好")
+            return "waiting_user_order", R(to=feed.source, message="好")
         elif "n" == feed.message.strip().lower():
-            return "select_shop", Response(to=feed.source, message="好，請重新選擇")
+            return "select_shop", R(to=feed.source, message="好，請重新選擇")
 
     def state_waiting_user_order(self, feed):
 
@@ -318,7 +320,7 @@ class Bot(AbstractBot):
             order_summary_str, total, count = get_summary()
 
             # TODO refactoring to a helper
-            return "nothing", Response(
+            return "nothing", R(
                 to=feed.source,
                 message=(
                     "好，以下是本次的訂單統計\n"
@@ -330,7 +332,7 @@ class Bot(AbstractBot):
 
         elif self.is_equal("?", feed.message):
             order_summary_str, total, count = get_summary()
-            return "waiting_user_order", Response(
+            return "waiting_user_order", R(
                 to=feed.source,
                 message=(
                     "目前訂單統計\n"
