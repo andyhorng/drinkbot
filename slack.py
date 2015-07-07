@@ -3,7 +3,7 @@ from slackclient import SlackClient
 import logging
 import json
 import drinkbot
-import menu
+from drinkbot import menu
 import time
 import os
 
@@ -95,7 +95,7 @@ while True:
         import traceback
         import sys
         traceback.print_exc(file=sys.stdout)
-        slack.api_call('chat.postMessage',
-                       channel=config['command_channel'],
-                       as_user=True,
-                       text="Oops! 我好像被玩壞了 (last state: {})".format(bot.state))
+        # slack.api_call('chat.postMessage',
+        #                channel=config['command_channel'],
+        #                as_user=True,
+        #                text="Oops! 我好像被玩壞了 (last state: {})".format(bot.state))

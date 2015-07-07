@@ -133,6 +133,13 @@ class AbstractBot(object):
         else:
             return False
 
+    def if_contain(self, possibles, s):
+        for p in possibles:
+            if self.is_equal(p, s):
+                return True
+        return False
+
+
     # TODO: refactoring to decorator and apply to the required state handler
     def all(self, feed):
         '''Triggered on every action transistion
@@ -310,14 +317,8 @@ class Bot(AbstractBot):
                                                     message="好，請重新選擇"))
 
     def state_waiting_user_order(self, feed):
-        if feed.source.id in self.tiny_bots:
-            # dispatch feed to tiny bots
-            tiny_bot = self.tiny_bots[feed.source.id]
-            tiny_bot.hey(feed)
 
-            return Reaction('waiting_user_order', None)
-
-        elif self.is_equal("點餐結束", feed.message):
+        def get_summary():
             total = count = 0
             order_summary_str = ""
             for tiny in self.tiny_bots.values():
@@ -327,6 +328,18 @@ class Bot(AbstractBot):
                     order_summary_str += ("{} {} x 1\n"
                                           .format(item.name, item.custom))
 
+            return order_summary_str, total, count
+
+        if feed.source.id in self.tiny_bots:
+            # dispatch feed to tiny bots
+            tiny_bot = self.tiny_bots[feed.source.id]
+            tiny_bot.hey(feed)
+
+            return Reaction('waiting_user_order', None)
+
+        elif self.is_equal("點餐結束", feed.message):
+            order_summary_str, total, count = get_summary()
+
             # TODO refactoring to a helper
             return Reaction(
                 "nothing",
@@ -334,6 +347,20 @@ class Bot(AbstractBot):
                     to=feed.source,
                     message=(
                         "好，以下是本次的訂單統計\n"
+                        "{}\n"
+                        "共計 {} 杯，{} 元\n").format(
+                        order_summary_str,
+                        count,
+                        total)))
+
+        elif self.is_equal("?", feed.message):
+            order_summary_str, total, count = get_summary()
+            return Reaction(
+                "waiting_user_order",
+                Response(
+                    to=feed.source,
+                    message=(
+                        "目前訂單統計\n"
                         "{}\n"
                         "共計 {} 杯，{} 元\n").format(
                         order_summary_str,

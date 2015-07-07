@@ -158,6 +158,19 @@ drinking a，菜單如下。
         mock.assert_called_once_with(drinkbot.Channel(id="DM01"), '''\
 好的，已為您點了一杯 drink1 少糖 去冰，10 元。一杯 drink2 去冰，20 元。''')
 
+        # query
+        feed = drinkbot.Feed(source=drinkbot.Channel(id="someone"),
+                             message="?")
+        mock = Mock(return_value=None)
+        bot.register_send(mock)
+        bot.hey(feed)
+        mock.assert_called_once_with(drinkbot.Channel(id="someone"), '''\
+目前訂單統計
+drink1 少糖 去冰 x 1
+drink2 去冰 x 1
+
+共計 2 杯，30 元
+''')
         # user 2
         feed = drinkbot.Feed(source=drinkbot.Channel(id="DM02"),
                              message="002 少糖 去冰")
