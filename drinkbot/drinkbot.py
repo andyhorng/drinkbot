@@ -64,21 +64,6 @@ class Channel(object):
         return "channel/user id: {}".format(self.id)
 
 
-class Reaction(object):
-
-    def __init__(self, next_state, response):
-        self._next_state = next_state
-        self._response = response
-
-    @property
-    def next_state(self):
-        return self._next_state
-
-    @property
-    def response(self):
-        return self._response
-
-
 class AbstractBot(object):
 
     def register_fetch_channels(self, func):
@@ -119,8 +104,10 @@ class AbstractBot(object):
             if not rt:
                 return None
 
-            self.state = rt.next_state
-            return self.send_response(rt.response)
+            next_state, response = rt
+
+            self.state = next_state
+            return self.send_response(response)
 
     def is_equal(self, expected, s):
         from Levenshtein import distance
@@ -138,7 +125,6 @@ class AbstractBot(object):
             if self.is_equal(p, s):
                 return True
         return False
-
 
     # TODO: refactoring to decorator and apply to the required state handler
     def all(self, feed):
@@ -175,7 +161,7 @@ class TinyBot(AbstractBot):
             "{}，菜單如下。\n"
             "{}").format(self.menu.name, self.menu.message()))
 
-        return Reaction("waiting", None)
+        return "waiting", None
 
     def state_waiting(self, feed):
         ids = ["{:03d}".format(item.id) for item in self.menu.items]
@@ -210,18 +196,17 @@ class TinyBot(AbstractBot):
 
         self._items = items
 
-        return Reaction("done",
-                        Response(to=feed.source,
-                                 message='好的，已為您點了{}'
-                                 .format(order)))
+        return "done", Response(to=feed.source,
+                                message='好的，已為您點了{}'
+                                .format(order))
 
     def state_done(self, feed):
-        return Reaction("done", None)
+        return "done", None
 
     def all(self, feed):
         if self.is_equal("取消", feed.message):
-            return Reaction("send_menu", Response(to=feed.source,
-                                                  message="已取消"))
+            return "send_menu", Response(to=feed.source,
+                                         message="已取消")
         return None
 
     @property
@@ -249,8 +234,8 @@ class Bot(AbstractBot):
         possibles = ["取消", "閉嘴", "關掉"]
         for possible in possibles:
             if self.is_equal(possible, feed.message):
-                return Reaction("nothing", Response(to=feed.source,
-                                                    message="好的"))
+                return "nothing", Response(to=feed.source,
+                                           message="好的")
         return None
 
     def register_send(self, send):
@@ -263,41 +248,35 @@ class Bot(AbstractBot):
         if self.is_equal("我要喝飲料", feed.message):
             self.shop_id = None
             self.tiny_bots = {}
-            return Reaction(
-                "select_shop",
-                Response(
-                    to=feed.source,
-                    message=('好，請輸入飲料店 ID，或輸入list來列出所有飲料店。或直接輸入您的訂單編號。')))
+            return "select_shop", Response(
+                to=feed.source,
+                message=('好，請輸入飲料店 ID，或輸入list來列出所有飲料店。或直接輸入您的訂單編號。'))
 
         elif "背菜單" in feed.message:
             pass
 
     def state_select_shop(self, feed):
         if 'list' in feed.message:
-            return Reaction('select_shop', Response(
+            return 'select_shop', Response(
                 to=feed.source,
                 message=", ".join("{}: {}".format(m.id, m.name)
-                                  for m in self.menus.values())))
+                                  for m in self.menus.values()))
 
         shop_ids = self.menus.keys()
         try:
             selection = int(feed.message)
             if selection in shop_ids:
                 self.shop_id = selection
-                return Reaction(
-                    'confirm_shop',
-                    Response(
-                        to=feed.source,
-                        message='您要訂的是 {}，確定請輸入Y，重選請重新輸入飲料店 ID' .format(
-                            self.menus[selection].name)))
+                return 'confirm_shop', Response(
+                    to=feed.source,
+                    message='您要訂的是 {}，確定請輸入Y，重選請重新輸入飲料店 ID' .format(
+                            self.menus[selection].name))
             else:
-                return Reaction('select_shop',
-                                Response(to=feed.source,
-                                         message='Unavailable Shop ID'))
+                return 'select_shop', Response(to=feed.source,
+                                               message='Unavailable Shop ID')
         except:
-            return Reaction('select_shop',
-                            Response(to=feed.source,
-                                     message='Invalid Shop ID'))
+            return 'select_shop', Response(to=feed.source,
+                                           message='Invalid Shop ID')
 
     def state_confirm_shop(self, feed):
         if "y" == feed.message.strip().lower():
@@ -310,11 +289,9 @@ class Bot(AbstractBot):
                     # dummy msg to trigger process
                     tiny.hey(Feed(source=user, message=""))
 
-            return Reaction("waiting_user_order", Response(to=feed.source,
-                                                           message="好"))
+            return "waiting_user_order", Response(to=feed.source, message="好")
         elif "n" == feed.message.strip().lower():
-            return Reaction("select_shop", Response(to=feed.source,
-                                                    message="好，請重新選擇"))
+            return "select_shop", Response(to=feed.source, message="好，請重新選擇")
 
     def state_waiting_user_order(self, feed):
 
@@ -335,34 +312,30 @@ class Bot(AbstractBot):
             tiny_bot = self.tiny_bots[feed.source.id]
             tiny_bot.hey(feed)
 
-            return Reaction('waiting_user_order', None)
+            return 'waiting_user_order', None
 
         elif self.is_equal("點餐結束", feed.message):
             order_summary_str, total, count = get_summary()
 
             # TODO refactoring to a helper
-            return Reaction(
-                "nothing",
-                Response(
-                    to=feed.source,
-                    message=(
-                        "好，以下是本次的訂單統計\n"
-                        "{}\n"
-                        "共計 {} 杯，{} 元\n").format(
-                        order_summary_str,
-                        count,
-                        total)))
+            return "nothing", Response(
+                to=feed.source,
+                message=(
+                    "好，以下是本次的訂單統計\n"
+                    "{}\n"
+                    "共計 {} 杯，{} 元\n").format(
+                    order_summary_str,
+                    count,
+                    total))
 
         elif self.is_equal("?", feed.message):
             order_summary_str, total, count = get_summary()
-            return Reaction(
-                "waiting_user_order",
-                Response(
-                    to=feed.source,
-                    message=(
-                        "目前訂單統計\n"
-                        "{}\n"
-                        "共計 {} 杯，{} 元\n").format(
-                        order_summary_str,
-                        count,
-                        total)))
+            return "waiting_user_order", Response(
+                to=feed.source,
+                message=(
+                    "目前訂單統計\n"
+                    "{}\n"
+                    "共計 {} 杯，{} 元\n").format(
+                    order_summary_str,
+                    count,
+                    total))
