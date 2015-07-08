@@ -67,7 +67,9 @@ class Channel(object):
     def __repr__(self):
         return "channel/user id: {}".format(self.id)
 
+
 class BotTool(object):
+
     @staticmethod
     def log(func):
         def wrapper(*args, **kwargs):
@@ -238,7 +240,6 @@ class TinyBot(AbstractBot):
     @BotTool.cancelable(["取消"], "waiting", "好的，已取消了")
     def state_done(self, feed):
         return "done", None
-
 
     @property
     def items(self):

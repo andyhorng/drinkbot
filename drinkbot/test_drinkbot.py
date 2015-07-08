@@ -23,12 +23,14 @@ class TestBot(unittest.TestCase):
 
         # bot.register_fetch_users()
 
-        feed = drinkbot.Feed( source=drinkbot.Channel( id="someone"), message="???")
+        feed = drinkbot.Feed(
+            source=drinkbot.Channel(
+                id="someone"),
+            message="???")
         mock = Mock(return_value=None)
         bot.register_send(mock)
         bot.hey(feed)
         mock.assert_called_once(drinkbot.Channel(id="someone"))
-
 
         ##################
         feed = drinkbot.Feed(
@@ -181,7 +183,6 @@ drinking a，菜單如下。
         bot.hey(feed)
         mock.assert_called_once_with(drinkbot.Channel(id="DM01"), '''\
 好的，已為您點了一杯 drink1 少糖 去冰，10 元。一杯 drink2 去冰，20 元。''')
-
 
         # query
         feed = drinkbot.Feed(source=drinkbot.Channel(id="someone"),
