@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import re
 from functools import wraps
 
 
@@ -86,7 +87,7 @@ class BotTool(object):
     def helper(func):
         @wraps(func)
         def wrapper(self, feed):
-            if feed.message == "???":
+            if re.match("[?？]+", feed.message):
                 doc = func.__doc__
                 if not doc:
                     doc = "暫時說不明白"
