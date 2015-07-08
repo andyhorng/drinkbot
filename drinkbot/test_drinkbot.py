@@ -40,10 +40,11 @@ class TestBot(unittest.TestCase):
         mock = Mock(return_value=None)
         bot.register_send(mock)
         bot.hey(feed)
-        mock.assert_called_once_with(drinkbot.Channel(id="someone"), '''\
-好，請輸入飲料店 ID，\
-或輸入list來列出所有飲料店。\
-或直接輸入您的訂單編號。''')
+        mock.assert_called_once_with(
+            drinkbot.Channel(
+                id="someone"),
+            '好噢，請輸入飲料店 ID，或輸入 list 來列出所有飲料店。或直接輸入您的訂單編號。')
+
         ##################
 
         ##################
@@ -65,10 +66,10 @@ class TestBot(unittest.TestCase):
         mock = Mock(return_value=None)
         bot.register_send(mock)
         bot.hey(feed)
-        mock.assert_called_once_with(drinkbot.Channel(id="someone"), '''\
-好，請輸入飲料店 ID，\
-或輸入list來列出所有飲料店。\
-或直接輸入您的訂單編號。''')
+        mock.assert_called_once_with(
+            drinkbot.Channel(
+                id="someone"),
+            '好噢，請輸入飲料店 ID，或輸入 list 來列出所有飲料店。或直接輸入您的訂單編號。')
         ##################
 
         ##################
