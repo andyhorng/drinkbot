@@ -66,7 +66,7 @@ class Channel(object):
     def __repr__(self):
         return "channel/user id: {}".format(self.id)
 
-class StateDecorator(object):
+class BotTool(object):
     @staticmethod
     def log(func):
         def wrapper(*args, **kwargs):
@@ -96,6 +96,23 @@ class StateDecorator(object):
 
         return wrapper
 
+    @staticmethod
+    def cancelable(keywords, return_state, msg):
+
+        def wrapper(func):
+
+            @wraps(func)
+            def wrapper2(self, feed):
+                if self.if_contains(keywords, feed.message):
+                    self.reset()
+                    return return_state, R(to=feed.source, message=msg)
+
+                return func(self, feed)
+
+            return wrapper2
+
+        return wrapper
+
 
 class AbstractBot(object):
 
@@ -110,16 +127,16 @@ class AbstractBot(object):
             return
         self.send(response.to, response.message)
 
-    @StateDecorator.log
+    def reset(self):
+        pass
+
+    @BotTool.log
     def hey(self, feed):
         logging.info("{} status: {}".format(self.__class__.__name__,
                                             self.state))
         action = getattr(self, "state_{}".format(self.state))
         if action:
-            rt = self.all(feed)
-            if not rt:
-                rt = action(feed)
-
+            rt = action(feed)
             if not rt:
                 return None
 
@@ -139,17 +156,11 @@ class AbstractBot(object):
         else:
             return False
 
-    def if_contain(self, possibles, s):
+    def if_contains(self, possibles, s):
         for p in possibles:
             if self.is_equal(p, s):
                 return True
         return False
-
-    # TODO: refactoring to decorator and apply to the required state handler
-    def all(self, feed):
-        '''Triggered on every action transistion
-        '''
-        return None
 
     @property
     def state(self):
@@ -169,8 +180,12 @@ class TinyBot(AbstractBot):
     '''
 
     def __init__(self, **kwargs):
-        self.user = kwargs['user']
-        self.menu = kwargs['menu']
+        self._args = kwargs
+        self.reset()
+
+    def reset(self):
+        self.user = self._args['user']
+        self.menu = self._args['menu']
         self.state = "send_menu"
         self._items = []
 
@@ -219,14 +234,10 @@ class TinyBot(AbstractBot):
                          message='好的，已為您點了{}'
                          .format(order))
 
+    @BotTool.cancelable(["取消"], "waiting", "好的，已取消了")
     def state_done(self, feed):
         return "done", None
 
-    def all(self, feed):
-        if self.is_equal("取消", feed.message):
-            return "send_menu", R(to=feed.source,
-                                  message="已取消")
-        return None
 
     @property
     def items(self):
@@ -235,15 +246,36 @@ class TinyBot(AbstractBot):
 
 class Bot(AbstractBot):
 
+    CANCEL_KEYWORDS = ["取消", "閉嘴", "關掉"]
+    CANCEL_MSG = "好的"
+
     def __init__(self, **kwargs):
         '''
         menu: {1: {name: xxx, items: {}}}
         '''
+        self._args = kwargs
+        self.reset()
+
+    def reset(self):
         self._state = "nothing"
-        self.menus_getter = kwargs['menus_getter']
+        self.menus_getter = self._args['menus_getter']
 
         self.shop_id = None
         self.tiny_bots = {}
+
+    def dispatch_to_tinybot(func):
+        @wraps(func)
+        def wrapper(self, feed):
+            if feed.source.id in self.tiny_bots:
+                # dispatch feed to tiny bots
+                tiny_bot = self.tiny_bots[feed.source.id]
+                tiny_bot.hey(feed)
+
+                return 'waiting_user_order', None
+
+            return func(self, feed)
+
+        return wrapper
 
     @property
     def menus(self):
@@ -263,7 +295,8 @@ class Bot(AbstractBot):
 
         return super(Bot, self).register_send(send)
 
-    @StateDecorator.helper
+    @BotTool.helper
+    @BotTool.cancelable(CANCEL_KEYWORDS, "nothing", CANCEL_MSG)
     def state_nothing(self, feed):
         '''
         我沒事。想喝飲料就跟我說：”我要喝飲料“，我會幫大家統計。
@@ -278,7 +311,8 @@ class Bot(AbstractBot):
         elif "背菜單" in feed.message:
             pass
 
-    @StateDecorator.helper
+    @BotTool.helper
+    @BotTool.cancelable(CANCEL_KEYWORDS, "nothing", CANCEL_MSG)
     def state_select_shop(self, feed):
         '''
         我正在等您決定要喝哪一家。 list 可以得到店家清單。
@@ -305,7 +339,8 @@ class Bot(AbstractBot):
             return 'select_shop', R(to=feed.source,
                                     message='Invalid Shop ID')
 
-    @StateDecorator.helper
+    @BotTool.helper
+    @BotTool.cancelable(CANCEL_KEYWORDS, "nothing", CANCEL_MSG)
     def state_confirm_shop(self, feed):
         '''
         我正在等您確認店家，輸入 y/n 做決定。
@@ -324,7 +359,9 @@ class Bot(AbstractBot):
         elif "n" == feed.message.strip().lower():
             return "select_shop", R(to=feed.source, message="好，請重新選擇")
 
-    @StateDecorator.helper
+    @BotTool.helper
+    @dispatch_to_tinybot
+    @BotTool.cancelable(CANCEL_KEYWORDS, "nothing", CANCEL_MSG)
     def state_waiting_user_order(self, feed):
         '''
         我正在等大家點餐，輸入“點餐結束“，我會幫您做統計。輸入“點餐狀況”，我會回報點餐狀況。
@@ -342,14 +379,7 @@ class Bot(AbstractBot):
 
             return order_summary_str, total, count
 
-        if feed.source.id in self.tiny_bots:
-            # dispatch feed to tiny bots
-            tiny_bot = self.tiny_bots[feed.source.id]
-            tiny_bot.hey(feed)
-
-            return 'waiting_user_order', None
-
-        elif self.is_equal("點餐結束", feed.message):
+        if self.is_equal("點餐結束", feed.message):
             order_summary_str, total, count = get_summary()
 
             # TODO refactoring to a helper
