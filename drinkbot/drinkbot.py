@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+from functools import wraps
 
 
 class Feed(object):
@@ -65,20 +66,8 @@ class Channel(object):
     def __repr__(self):
         return "channel/user id: {}".format(self.id)
 
-
-class AbstractBot(object):
-
-    def register_fetch_channels(self, func):
-        self.fetch_channels = func
-
-    def register_send(self, func):
-        self.send = func
-
-    def send_response(self, response):
-        if not response:
-            return
-        self.send(response.to, response.message)
-
+class StateDecorator(object):
+    @staticmethod
     def log(func):
         def wrapper(*args, **kwargs):
             import pprint
@@ -93,7 +82,35 @@ class AbstractBot(object):
 
         return wrapper
 
-    @log
+    @staticmethod
+    def helper(func):
+        @wraps(func)
+        def wrapper(self, feed):
+            if feed.message == "???":
+                doc = func.__doc__
+                if not doc:
+                    doc = "暫時說不明白"
+                return self.state, R(to=feed.source, message=doc)
+
+            return func(self, feed)
+
+        return wrapper
+
+
+class AbstractBot(object):
+
+    def register_fetch_channels(self, func):
+        self.fetch_channels = func
+
+    def register_send(self, func):
+        self.send = func
+
+    def send_response(self, response):
+        if not response:
+            return
+        self.send(response.to, response.message)
+
+    @StateDecorator.log
     def hey(self, feed):
         logging.info("{} status: {}".format(self.__class__.__name__,
                                             self.state))
@@ -246,7 +263,11 @@ class Bot(AbstractBot):
 
         return super(Bot, self).register_send(send)
 
+    @StateDecorator.helper
     def state_nothing(self, feed):
+        '''
+        我沒事。想喝飲料就跟我說：”我要喝飲料“，我會幫大家統計。
+        '''
         if self.is_equal("我要喝飲料", feed.message):
             self.shop_id = None
             self.tiny_bots = {}
@@ -257,7 +278,11 @@ class Bot(AbstractBot):
         elif "背菜單" in feed.message:
             pass
 
+    @StateDecorator.helper
     def state_select_shop(self, feed):
+        '''
+        我正在等您決定要喝哪一家。 list 可以得到店家清單。
+        '''
         if 'list' in feed.message:
             return 'select_shop', R(
                 to=feed.source,
@@ -280,7 +305,11 @@ class Bot(AbstractBot):
             return 'select_shop', R(to=feed.source,
                                     message='Invalid Shop ID')
 
+    @StateDecorator.helper
     def state_confirm_shop(self, feed):
+        '''
+        我正在等您確認店家，輸入 y/n 做決定。
+        '''
         if "y" == feed.message.strip().lower():
             for user in self.fetch_channels():
                 if user.id not in self.tiny_bots:
@@ -295,7 +324,11 @@ class Bot(AbstractBot):
         elif "n" == feed.message.strip().lower():
             return "select_shop", R(to=feed.source, message="好，請重新選擇")
 
+    @StateDecorator.helper
     def state_waiting_user_order(self, feed):
+        '''
+        我正在等大家點餐，輸入“點餐結束“，我會幫您做統計。輸入“點餐狀況”，我會回報點餐狀況。
+        '''
 
         def get_summary():
             total = count = 0
@@ -330,7 +363,7 @@ class Bot(AbstractBot):
                     count,
                     total))
 
-        elif self.is_equal("?", feed.message):
+        elif self.is_equal("點餐狀況", feed.message):
             order_summary_str, total, count = get_summary()
             return "waiting_user_order", R(
                 to=feed.source,
