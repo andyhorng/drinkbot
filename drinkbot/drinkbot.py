@@ -301,14 +301,14 @@ class Bot(AbstractBot):
     @BotTool.cancelable(CANCEL_KEYWORDS, "nothing", CANCEL_MSG)
     def state_nothing(self, feed):
         '''
-        我沒事。想喝飲料就跟我說：”我要喝飲料“，我會幫大家統計。
+        我沒事。想喝飲料就跟我說：”我要喝飲料“，我會幫大家統計呦🙋�。
         '''
         if self.is_equal("我要喝飲料", feed.message):
             self.shop_id = None
             self.tiny_bots = {}
             return "select_shop", R(
                 to=feed.source,
-                message=('好，請輸入飲料店 ID，或輸入list來列出所有飲料店。或直接輸入您的訂單編號。'))
+                message=('好噢，請輸入飲料店 ID，或輸入 list 來列出所有飲料店。或直接輸入您的訂單編號。'))
 
         elif "背菜單" in feed.message:
             pass
@@ -317,7 +317,7 @@ class Bot(AbstractBot):
     @BotTool.cancelable(CANCEL_KEYWORDS, "nothing", CANCEL_MSG)
     def state_select_shop(self, feed):
         '''
-        我正在等您決定要喝哪一家。 list 可以得到店家清單。
+        我正在等您決定要喝哪一家呦。輸入 list 可以得到店家清單噢💁。
         '''
         if 'list' in feed.message:
             return 'select_shop', R(
@@ -345,7 +345,7 @@ class Bot(AbstractBot):
     @BotTool.cancelable(CANCEL_KEYWORDS, "nothing", CANCEL_MSG)
     def state_confirm_shop(self, feed):
         '''
-        我正在等您確認店家，輸入 y/n 做決定。
+        我正在等您確認店家，輸入 y/n 來做決定吧！豆幾~ 🙆
         '''
         if "y" == feed.message.strip().lower():
             for user in self.fetch_channels():
@@ -366,7 +366,7 @@ class Bot(AbstractBot):
     @BotTool.cancelable(CANCEL_KEYWORDS, "nothing", CANCEL_MSG)
     def state_waiting_user_order(self, feed):
         '''
-        我正在等大家點餐，輸入“點餐結束“，我會幫您做統計。輸入“點餐狀況”，我會回報點餐狀況。
+        我正在等大家點餐，輸入“點餐結束“，我會幫您做統計。輸入“點餐狀況”，我會回報點餐狀況🙎。
         '''
 
         def get_summary():
